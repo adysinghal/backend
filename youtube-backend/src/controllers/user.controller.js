@@ -20,7 +20,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // get user details
     const { fullName, email, userName, password } = req.body;
-    console.log("fullName: ", fullName);
 
     // validation - not empty
     // we are checking for all the fields in the array using some() method to check if after trimming, if any field is empty, we return error
@@ -34,7 +33,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // check if user already exits: userName, email
     // User is the mongoose model here
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         // $ operator helps us use findOne function for both userName and email
         $or: [{ userName }, { email }],
     });
@@ -45,8 +44,14 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // check for images, for avatar(required)
     // multer gives req.files option (we use ? to ensure that it exists)
+    // console.log(req.files);
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.file?.coverImage[0]?.path;
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+    let coverImageLocalPath;
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
+        coverImageLocalPath = req.files.coverImage[0].path;
+    }
     
     if(!avatarLocalPath){
         throw new ApiError(400, "Avatar file is required");
@@ -54,9 +59,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // upload them to cloudinary
     const avatar = await uploadOnCloudinary(avatarLocalPath);
-    if(coverImageLocalPath){
-        const coverImage = await uploadOnCloudinary(coverImageLocalPath);
-    }
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
     if(!avatar){
         throw new ApiError(400, "Avatar file is required");
